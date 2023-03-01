@@ -263,11 +263,24 @@ class MainWindow(QWidget):
         self.mpl_canvas_representative_spectrum.axes.set_ylabel("H/V Ratio")
         self.mpl_canvas_representative_spectrum.axes.set_title("Representative Spectrum")
         self.mpl_canvas_representative_spectrum.axes.legend(ncols=3, loc="upper left", fontsize=8, fancybox=False, frameon=False)
-        self.grid_entire.addWidget(self.mpl_canvas_representative_spectrum, 4, 0, 1, 1)
+        self.grid_entire.addWidget(self.mpl_canvas_representative_spectrum, 2, 1, 1, 1)
+
+        # 
+        self.mpl_canvas_representative_spectrum_parzen = MplCanvas(self, num_row=1, num_col=1)
+        self.mpl_canvas_representative_spectrum_parzen.axes.plot([1, 10], [1, 1], label="Sample")
+        self.mpl_canvas_representative_spectrum_parzen.axes.set_xscale("log")
+        self.mpl_canvas_representative_spectrum_parzen.axes.set_yscale("log")
+        self.mpl_canvas_representative_spectrum_parzen.axes.set_xlabel("Freqency (Hz)")
+        self.mpl_canvas_representative_spectrum_parzen.axes.set_ylabel("H/V Ratio")
+        self.mpl_canvas_representative_spectrum_parzen.axes.set_title("Representative Spectrum (Applying Parzen)")
+        self.mpl_canvas_representative_spectrum_parzen.axes.legend(ncols=3, loc="upper left", fontsize=8, fancybox=False, frameon=False)
+        self.grid_entire.addWidget(self.mpl_canvas_representative_spectrum_parzen, 3, 1, 1, 1)
         
+        self.grid_entire.setColumnStretch(0, 1)
+        self.grid_entire.setColumnStretch(1, 1)
         self.setLayout(self.grid_entire)
 
-        self.setGeometry(300, 50, 600, 1800)
+        self.setGeometry(300, 50, 1600, 1200)
         self.setWindowTitle('Microtremor Analyser')
         
     def open_dialog(self):
@@ -574,39 +587,41 @@ class MainWindow(QWidget):
             self.temp_x = self.fft_freq[positive_fft_freq_index]
             temp_y = self.running_spectra[x_data][positive_fft_freq_index]
             self.representative_spectrum.append(self.mpl_canvas_representative_spectrum.axes.plot(self.temp_x, temp_y, linewidth=0.75, label=label))
-
-            self.update_representative_spectrum_geomean(event.button)
-
         
         elif event.button == 3 and len(self.running_spectra_arrows):
             self.running_spectra_arrows.pop(-1)[0].remove()
             self.representative_spectrum.pop(-1)[0].remove()
 
+        self.update_representative_spectrum_geomean()
+
         self.mpl_canvas_representative_spectrum.axes.legend(ncols=3, loc="upper left", fontsize=8, fancybox=False, frameon=False)
         self.mpl_canvas_running_spectra.draw()
         self.mpl_canvas_representative_spectrum.draw()
     
-    def update_representative_spectrum_geomean(self, event_button):
+    def update_representative_spectrum_geomean(self):
 
         if len(self.representative_spectrum) != 0:
-            num_representative_spectrum = len(self.representative_spectrum)
-            temp_y_mean = np.ones_like(positive_fft_freq_index = self.fft_freq > 0)
-            for i in range(num_representative_spectrum):
-                temp_y_mean *= self.representative_spectrum[i].get_ydata()
-            temp_y_mean = temp_y_mean ** (1/num_representative_spectrum)
-            
-        
-        if event_button == 1:
-            num_representative_spectrum = len(self.representative_spectrum)
-            temp_y_mean = np.ones_like(positive_fft_freq_index = self.fft_freq > 0)
-            for i in range(num_representative_spectrum):
-                temp_y_mean *= self.representative_spectrum[i].get_ydata()
-            temp_y_mean = temp_y_mean ** (1/num_representative_spectrum)
 
-            if len(self.representative_spectrum_geomean) == 0 and event_button == 1:
-                self.representative_spectrum_geomean.append(self.mpl_canvas_representative_spectrum.axes.plot(self.temp_x, temp_y_mean, linewidth=1.5, alpha=0.5, label="Geo Mean"))
+            num_representative_spectrum = len(self.representative_spectrum)
+            temp_y_mean = np.ones_like(self.fft_freq[self.fft_freq > 0])
+            for i in range(num_representative_spectrum):
+                temp_y_mean *= self.representative_spectrum[i][0].get_ydata()
+            temp_y_mean = temp_y_mean ** (1/num_representative_spectrum)
+            temp_y_mean /= 10
+
+            if len(self.representative_spectrum_geomean) == 0:
+                self.representative_spectrum_geomean.append(
+                    self.mpl_canvas_representative_spectrum.axes.plot(self.temp_x, 
+                                                                      temp_y_mean,
+                                                                      color="k", 
+                                                                      linewidth=2, 
+                                                                      label="Geo Mean"))
             else:
-                self.representative_spectrum_geomean[0].set_ydata(temp_y_mean)
+                self.representative_spectrum_geomean[0][0].set_ydata(temp_y_mean)
+            
+        else:
+            self.representative_spectrum_geomean[0][0].set_alpha(0)
+
     
     def update_graph_time_data(self, event):
 
